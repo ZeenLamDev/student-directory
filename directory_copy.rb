@@ -1,3 +1,5 @@
+require 'csv'
+
 @students = []
 
 def interactive_menu
@@ -69,7 +71,7 @@ def input_students
   end
   
   while !name.empty? do
-    @students << {name: name, cohort: cohort.to_sym}
+    add_students(name, cohort)
     if @students.count == 1
       puts "Now we have 1 student"
       puts "Please enter the names of the students"               
@@ -82,16 +84,21 @@ def input_students
   @students
 end
 
+def add_students(name, cohort)
+  @students << {name: name, cohort: cohort.to_sym}
+end
+
 def save_students
-  # open the file for writing
-  file = File.open("students.csv", "w")
-  # iterate over the array of students
-  @students.each do |student|
-    student_data = [student[:name], student[:cohort]]
-    csv_line = student_data.join(",")
-    file.puts csv_line
+  puts "Save as: "
+  filename = STDIN.gets.chomp
+  CSV.open(filename, "wb") do |file|
+    @students.each do |student|
+      student_data = [student[:name], student[:cohort]]
+      file << student_data
+    end
   end
-  file.close
+  puts "#{@students.count} students saved to #{filename}"
+  puts
 end
 
 def try_load_students
@@ -100,24 +107,28 @@ def try_load_students
   if File.exists?(filename) # if it exists
     load_students(filename)
      puts "Loaded #{@students.count} from #{filename}"
-  else # if it doesn't exist
+  else
     puts "Sorry, #{filename} doesn't exist."
-    exit # quit the program
+    exit
   end
 end
 
-def load_students(filename = "students.csv")
-  puts 'Please enter your files name'
-  filename = STDIN.gets.chomp
-  File.foreach(filename) do |line|
-    name, cohort = line.chomp.split(',')
-    @students << {name: name, cohort: cohort}
+def load_students(filename = "")
+  if filename != "students.csv"
+    puts "Which file would you like to load?"
+    filename = STDIN.gets.chomp
+    if filename.empty?
+      filename = "students.csv"
+    end
   end
-  if @students.count >= 1
-    puts "#{@students}"
-  else 
-    puts "No students on file."
+  CSV.foreach(filename) do |line|
+    name = line[0] 
+    cohort = line[1]
+    add_students(name, cohort)
   end
+  puts "Loaded #{CSV.read(filename).size} students from #{filename}"
+  puts "#{CSV.read(filename)}"
+  puts
 end
 
 def filter_cohort()
